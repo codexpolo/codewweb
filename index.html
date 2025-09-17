@@ -1875,7 +1875,7 @@
         }
 
         // Handle checkbox logic
-        function handleCheckboxChange(dropdownId) {
+        function handleCheckboxChange(dropdownId, event) {
             const dropdown = document.getElementById(dropdownId + '-dropdown');
             const allCheckbox = dropdown.querySelector('input[type="checkbox"][id*="all"]');
             const otherCheckboxes = dropdown.querySelectorAll('input[type="checkbox"]:not([id*="all"])');
