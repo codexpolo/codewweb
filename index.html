@@ -1913,7 +1913,7 @@
         
         function handleCheckboxChangeWrapper(event) {
             const dropdownId = event.target.closest('.dropdown').id.replace('-dropdown', '');
-            handleCheckboxChange(dropdownId);
+            handleCheckboxChange(dropdownId, event);
         }
         
         // Initialize the application
