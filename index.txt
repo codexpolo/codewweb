@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Costless Proxy Inventory</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+        }
+
+        .header {
+            background: white;
+            color: #4a5568;
+            padding: 40px 0;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin: 0;
+            color: #4a5568;
+        }
+
+        .filters {
+            padding: 20px 30px;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            position: relative;
+        }
+
+        .filter-btn {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 130px;
+            text-align: left;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .clear-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10;
+        }
+
+        .clear-btn:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+
+        .clear-btn.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .filter-btn-text {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding-right: 4px;
+        }
+
+        #country-dropdown {
+            min-width: 250px;
+        }
+
+        .filter-btn:hover {
+            border-color: #3b82f6;
+        }
+
+        .filter-btn.active {
+            border-color: #3b82f6;
+            background: #3b82f6;
+            color: white;
+        }
+
+        .dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: none;
+            margin-top: 2px;
+        }
+
+        .dropdown.show {
+            display: block;
+        }
+
+        .dropdown-content {
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 8px;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+
+        .dropdown-item {
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .dropdown-item:hover {
+            background: #f3f4f6;
+        }
+
+        .dropdown-item input[type="checkbox"] {
+            margin-right: 6px;
+        }
+
+        .dropdown-item label {
+            cursor: pointer;
+            user-select: none;
+            flex: 1;
+        }
+
+        .apply-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .apply-btn:hover {
+            background: #2563eb;
+        }
+
+        .stats {
+            padding: 15px 30px;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stats-left {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .stats-number {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .refresh-indicator {
+            font-size: 14px;
+            color: #059669;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-indicator.loading {
+            color: #3b82f6;
+        }
+
+        .refresh-indicator.error {
+            color: #ef4444;
+        }
+
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .table-container {
+            overflow-x: auto;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th {
+            background: #f9fafb;
+            color: #374151;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 500;
+            font-size: 13px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 14px;
+        }
+
+        tr:hover td {
+            background: #f9fafb;
+        }
+
+        .protocol-tag {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .protocol-tag:hover {
+            text-decoration: underline;
+        }
+
+        .port-tag {
+            background: #3b82f6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+            min-width: 50px;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .port-tag.socks {
+            background: #3b82f6;
+        }
+
+        .country-code {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .anonymity-elite {
+            color: #059669;
+            font-weight: 500;
+        }
+
+        .https-status {
+            color: #dc2626;
+            font-weight: 500;
+        }
+
+        .https-status.success {
+            color: #059669;
+        }
+
+        .latency {
+            color: #059669;
+            font-weight: 500;
+        }
+
+        .latency.high {
+            color: #dc2626;
+        }
+
+        .last-checked {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .mobile-indicator {
+            color: #059669;
+            font-weight: 500;
+        }
+
+        .mobile-indicator.false {
+            color: #dc2626;
+        }
+
+        .proxy-detected {
+            color: #dc2626;
+            font-weight: 500;
+        }
+
+        .proxy-detected.false {
+            color: #059669;
+        }
+
+        .hosting-indicator {
+            color: #dc2626;
+            font-weight: 500;
+        }
+
+        .hosting-indicator.false {
+            color: #059669;
+        }
+
+        /* Pagination Styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            gap: 8px;
+        }
+
+        .pagination button {
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #374151;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 40px;
+            transition: all 0.2s ease;
+        }
+
+        .pagination button:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+
+        .pagination button.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination button:disabled:hover {
+            background: white;
+            border-color: #d1d5db;
+        }
+
+        .pagination .dots {
+            color: #6b7280;
+            padding: 8px 4px;
+        }
+
+        /* New Proxy Notification */
+        .new-proxy-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #059669;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 9999;
+        }
+
+        .new-proxy-notification.show {
+            transform: translateX(0);
+        }
+
+        @media (max-width: 768px) {
+            .filter-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-btn {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .table-container {
+                padding: 0 15px;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .pagination {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Costless Proxy Inventory</h1>
+        </div>
+
+        <div class="filters">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <button class="filter-btn" onclick="toggleDropdown('protocols')" id="protocols-btn">
+                        <span class="filter-btn-text">All protocols</span>
+                    </button>
+                    <button class="clear-btn" onclick="clearSelection(event, 'protocols')" id="protocols-clear">×</button>
+                    <div class="dropdown" id="protocols-dropdown">
+                        <div class="dropdown-content">
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="all-protocols" checked>
+                                <label for="all-protocols">All protocols</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="http">
+                                <label for="http">HTTP</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="socks4">
+                                <label for="socks4">SOCKS4</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="socks5">
+                                <label for="socks5">SOCKS5</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <button class="filter-btn" onclick="toggleDropdown('country')" id="country-btn">
+                        <span class="filter-btn-text">Select Country</span>
+                    </button>
+                    <button class="clear-btn" onclick="clearSelection(event, 'country')" id="country-clear">×</button>
+                    <div class="dropdown" id="country-dropdown">
+                        <div class="dropdown-content">
+                            <input type="text" class="search-input" placeholder="Search countries..." id="country-search" onkeyup="filterCountries()">
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="all-countries" checked>
+                                <label for="all-countries">All Countries</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="afghanistan">
+                                <label for="afghanistan">Afghanistan</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="albania">
+                                <label for="albania">Albania</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="algeria">
+                                <label for="algeria">Algeria</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="andorra">
+                                <label for="andorra">Andorra</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="australia">
+                                <label for="australia">Australia</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="brazil">
+                                <label for="brazil">Brazil</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="canada">
+                                <label for="canada">Canada</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="china">
+                                <label for="china">China</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="france">
+                                <label for="france">France</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="germany">
+                                <label for="germany">Germany</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="india">
+                                <label for="india">India</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="japan">
+                                <label for="japan">Japan</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="netherlands">
+                                <label for="netherlands">Netherlands</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="philippines">
+                                <label for="philippines">Philippines</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="russia">
+                                <label for="russia">Russia</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="spain">
+                                <label for="spain">Spain</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="thailand">
+                                <label for="thailand">Thailand</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="united-kingdom">
+                                <label for="united-kingdom">United Kingdom</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="united-states">
+                                <label for="united-states">United States</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="vietnam">
+                                <label for="vietnam">Vietnam</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <button class="filter-btn" onclick="toggleDropdown('mobile')" id="mobile-btn">
+                        <span class="filter-btn-text">All Mobile</span>
+                    </button>
+                    <button class="clear-btn" onclick="clearSelection(event, 'mobile')" id="mobile-clear">×</button>
+                    <div class="dropdown" id="mobile-dropdown">
+                        <div class="dropdown-content">
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="all-mobile" checked>
+                                <label for="all-mobile">All Mobile</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="mobile-yes">
+                                <label for="mobile-yes">Mobile</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="mobile-no">
+                                <label for="mobile-no">Non-Mobile</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="apply-btn" onclick="applyFilters()">APPLY</button>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stats-left">
+                <span class="stats-text">Total <span class="stats-number" id="total-count">0</span> Available Proxies</span>
+            </div>
+            <div class="refresh-indicator" id="refresh-status">
+                <div class="loading-spinner" style="display: none;"></div>
+                <span>Real-time monitoring</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Proxy</th>
+                        <th>IP</th>
+                        <th>Country</th>
+                        <th>City</th>
+                        <th>Mobile</th>
+                        <th>Proxy Detected</th>
+                        <th>Hosting</th>
+                        <th>ISP</th>
+                        <th>Checked At</th>
+                    </tr>
+                </thead>
+                <tbody id="proxy-table">
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 40px; color: #6b7280;">
+                            Loading proxies...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination" id="pagination">
+            <!-- Pagination will be generated dynamically -->
+        </div>
+    </div>
+
+    <!-- New Proxy Notification -->
+    <div class="new-proxy-notification" id="new-proxy-notification">
+        <span id="notification-text">New proxy added!</span>
+    </div>
+
+    <script>
+        // Global variables
+        let allProxies = [];
+        let filteredProxies = [];
+        let currentPage = 1;
+        const proxiesPerPage = 20;
+        let lastProxyCount = 0;
+        let refreshInterval;
+
+        // Country flags mapping
+        const countryFlags = {
+            'Spain': '🇪🇸',
+            'Philippines': '🇵🇭', 
+            'Germany': '🇩🇪',
+            'Canada': '🇨🇦',
+            'Japan': '🇯🇵',
+            'Netherlands': '🇳🇱',
+            'China': '🇨🇳',
+            'United States': '🇺🇸',
+            'France': '🇫🇷',
+            'United Kingdom': '🇬🇧',
+            'Russia': '🇷🇺',
+            'Brazil': '🇧🇷',
+            'India': '🇮🇳',
+            'Australia': '🇦🇺',
+            'South Korea': '🇰🇷',
+            'Italy': '🇮🇹',
+            'Thailand': '🇹🇭',
+            'Vietnam': '🇻🇳',
+            'Singapore': '🇸🇬',
+            'Hong Kong': '🇭🇰',
+            'Taiwan': '🇹🇼',
+            'Indonesia': '🇮🇩',
+            'Malaysia': '🇲🇾',
+            'Turkey': '🇹🇷',
+            'Ukraine': '🇺🇦',
+            'Poland': '🇵🇱',
+            'Sweden': '🇸🇪',
+            'Norway': '🇳🇴',
+            'Finland': '🇫🇮',
+            'Denmark': '🇩🇰',
+            'Belgium': '🇧🇪',
+            'Switzerland': '🇨🇭',
+            'Austria': '🇦🇹',
+            'Czech Republic': '🇨🇿',
+            'Hungary': '🇭🇺',
+            'Romania': '🇷🇴',
+            'Bulgaria': '🇧🇬',
+            'Croatia': '🇭🇷',
+            'Serbia': '🇷🇸',
+            'Greece': '🇬🇷',
+            'Portugal': '🇵🇹',
+            'Ireland': '🇮🇪',
+            'Israel': '🇮🇱',
+            'Saudi Arabia': '🇸🇦',
+            'UAE': '🇦🇪',
+            'Egypt': '🇪🇬',
+            'South Africa': '🇿🇦',
+            'Mexico': '🇲🇽',
+            'Argentina': '🇦🇷',
+            'Chile': '🇨🇱',
+            'Colombia': '🇨🇴',
+            'Peru': '🇵🇪'
+        };
+
+        // Time formatting function
+        function formatTimeAgo(timestamp) {
+            try {
+                // Parse timestamp properly - handle different formats
+                let date;
+                if (typeof timestamp === 'string') {
+                    // If timestamp is "2025-07-18 16:01:48" format
+                    // Assume it's UTC+8, convert to UTC first
+                    const cleanTimestamp = timestamp.replace(' ', 'T');
+                    date = new Date(cleanTimestamp + '+08:00'); // Add timezone offset
+                } else {
+                    date = new Date(timestamp);
+                }
+                
+                const now = new Date();
+                const diffInSeconds = Math.floor((now - date) / 1000);
+
+                // Handle negative time (future dates)
+                if (diffInSeconds < 0) {
+                    return 'just now';
+                }
+
+                if (diffInSeconds < 60) {
+                    return `${diffInSeconds} sec ago`;
+                } else if (diffInSeconds < 3600) {
+                    const minutes = Math.floor(diffInSeconds / 60);
+                    return `${minutes} min ago`;
+                } else if (diffInSeconds < 86400) {
+                    const hours = Math.floor(diffInSeconds / 3600);
+                    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+                } else {
+                    const days = Math.floor(diffInSeconds / 86400);
+                    return `${days} day${days > 1 ? 's' : ''} ago`;
+                }
+            } catch (error) {
+                console.error('Error parsing timestamp:', timestamp, error);
+                return 'unknown';
+            }
+        }
+
+        // Load proxies from API
+        async function loadProxies() {
+            try {
+                updateRefreshStatus('loading', 'Loading proxies...');
+                
+                const response = await fetch('proxy_checker.php?action=info&limit=1000');
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const newProxyCount = data.data.length;
+                    
+                    // Check for new proxies
+                    if (lastProxyCount > 0 && newProxyCount > lastProxyCount) {
+                        showNewProxyNotification(newProxyCount - lastProxyCount);
+                    }
+                    
+                    lastProxyCount = newProxyCount;
+                    allProxies = data.data.reverse(); // Show newest first
+                    
+                    // Update countries dropdown
+                    updateCountriesDropdown();
+                    
+                    // Apply current filters
+                    applyFilters();
+                    
+                    updateRefreshStatus('success', 'Real-time monitoring');
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                console.error('Error loading proxies:', error);
+                updateRefreshStatus('error', 'Connection error');
+                
+                // Show error in table if no data
+                if (allProxies.length === 0) {
+                    document.getElementById('proxy-table').innerHTML = `
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 40px; color: #ef4444;">
+                                Failed to load proxies. Retrying...
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        }
+
+        // Update refresh status indicator
+        function updateRefreshStatus(status, text) {
+            const indicator = document.getElementById('refresh-status');
+            const spinner = indicator.querySelector('.loading-spinner');
+            const textSpan = indicator.querySelector('span');
+            
+            indicator.className = `refresh-indicator ${status}`;
+            textSpan.textContent = text;
+            
+            if (status === 'loading') {
+                spinner.style.display = 'block';
+            } else {
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Show new proxy notification
+        function showNewProxyNotification(count) {
+            const notification = document.getElementById('new-proxy-notification');
+            const text = document.getElementById('notification-text');
+            
+            text.textContent = `${count} new proxy${count > 1 ? 'es' : ''} added!`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Update countries dropdown dynamically
+        function updateCountriesDropdown() {
+            // Không cần update động nữa, sử dụng danh sách cố định
+            console.log('Using static country list');
+        }
+
+        // Render proxy table
+        function renderProxyTable() {
+            const tableBody = document.getElementById('proxy-table');
+            const startIndex = (currentPage - 1) * proxiesPerPage;
+            const endIndex = startIndex + proxiesPerPage;
+            const pageProxies = filteredProxies.slice(startIndex, endIndex);
+            
+            if (pageProxies.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 40px; color: #6b7280;">
+                            No proxies found matching your filters.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tableBody.innerHTML = pageProxies.map(proxy => {
+                const flag = countryFlags[proxy.country] || '🌍';
+                const protocol = proxy.proxy.includes(':80') ? 'HTTP' : 
+                               proxy.proxy.includes(':1080') ? 'SOCKS4' : 
+                               proxy.proxy.includes(':443') ? 'HTTPS' : 'HTTP';
+                
+                return `
+                    <tr>
+                        <td><a href="#" class="protocol-tag">${protocol}</a></td>
+                        <td>${proxy.ip}</td>
+                        <td>${flag} ${proxy.country}</td>
+                        <td>${proxy.city || 'Unknown'}</td>
+                        <td><span class="mobile-indicator ${proxy.mobile ? '' : 'false'}">${proxy.mobile ? 'Yes' : 'No'}</span></td>
+                        <td><span class="proxy-detected ${proxy.proxy_detected ? '' : 'false'}">${proxy.proxy_detected ? 'Yes' : 'No'}</span></td>
+                        <td><span class="hosting-indicator ${proxy.hosting ? '' : 'false'}">${proxy.hosting ? 'Yes' : 'No'}</span></td>
+                        <td>${proxy.isp || 'Unknown'}</td>
+                        <td><span class="last-checked">${formatTimeAgo(proxy.checked_at)}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Render pagination
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredProxies.length / proxiesPerPage);
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `
+                <button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                    ‹
+                </button>
+            `;
+            
+            // Page numbers
+            const maxVisible = 7;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+            
+            if (endPage - startPage + 1 < maxVisible) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
+            
+            if (startPage > 1) {
+                paginationHTML += `<button onclick="changePage(1)">1</button>`;
+                if (startPage > 2) {
+                    paginationHTML += `<span class="dots">...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `
+                    <button onclick="changePage(${i})" ${i === currentPage ? 'class="active"' : ''}>
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHTML += `<span class="dots">...</span>`;
+                }
+                paginationHTML += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            // Next button
+            paginationHTML += `
+                <button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                    ›
+                </button>
+            `;
+            
+            pagination.innerHTML = paginationHTML;
+        }
+
+        // Change page
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredProxies.length / proxiesPerPage);
+            if (page < 1 || page > totalPages) return;
+            
+            currentPage = page;
+            renderProxyTable();
+            renderPagination();
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Filter functions
+        function toggleDropdown(id) {
+            const dropdown = document.getElementById(id + '-dropdown');
+            const allDropdowns = document.querySelectorAll('.dropdown');
+            
+            // Close all other dropdowns
+            allDropdowns.forEach(dd => {
+                if (dd !== dropdown) {
+                    dd.classList.remove('show');
+                }
+            });
+            
+            // Toggle current dropdown
+            dropdown.classList.toggle('show');
+        }
+
+        function filterCountries() {
+            const searchInput = document.getElementById('country-search');
+            const searchTerm = searchInput.value.toLowerCase();
+            const countryItems = document.querySelectorAll('#country-dropdown .dropdown-item:not(:first-child):not(:nth-child(2))');
+            
+            countryItems.forEach(item => {
+                const countryName = item.querySelector('label').textContent.toLowerCase();
+                if (countryName.includes(searchTerm)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function clearSelection(event, filterType) {
+            event.stopPropagation();
+            
+            // Clear all checkboxes for this filter type
+            const dropdown = document.getElementById(filterType + '-dropdown');
+            const allCheckboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+            allCheckboxes.forEach(cb => cb.checked = false);
+            
+            // Check the "All" option
+            const allCheckbox = dropdown.querySelector('input[type="checkbox"][id*="all"]');
+            if (allCheckbox) {
+                allCheckbox.checked = true;
+            }
+            
+            // Update button text
+            updateButtonText();
+        }
+
+        function updateButtonText() {
+            // Update Protocols button
+            const protocolsSelected = getSelectedValues('protocols');
+            const protocolsBtn = document.querySelector('#protocols-btn .filter-btn-text');
+            const protocolsClear = document.getElementById('protocols-clear');
+            if (protocolsSelected.includes('All protocols') || protocolsSelected.length === 0) {
+                protocolsBtn.textContent = 'All protocols';
+                protocolsClear.classList.remove('show');
+            } else if (protocolsSelected.length === 1) {
+                protocolsBtn.textContent = protocolsSelected[0];
+                protocolsClear.classList.add('show');
+            } else {
+                protocolsBtn.textContent = `${protocolsSelected.length} selected`;
+                protocolsClear.classList.add('show');
+            }
+
+            // Update Countries button
+            const countriesSelected = getSelectedValues('country');
+            const countryBtn = document.querySelector('#country-btn .filter-btn-text');
+            const countryClear = document.getElementById('country-clear');
+            if (countriesSelected.includes('All Countries') || countriesSelected.length === 0) {
+                countryBtn.textContent = 'Select Country';
+                countryClear.classList.remove('show');
+            } else if (countriesSelected.length === 1) {
+                countryBtn.textContent = countriesSelected[0];
+                countryClear.classList.add('show');
+            } else {
+                countryBtn.textContent = `${countriesSelected.length} countries`;
+                countryClear.classList.add('show');
+            }
+
+            // Update Mobile button
+            const mobileSelected = getSelectedValues('mobile');
+            const mobileBtn = document.querySelector('#mobile-btn .filter-btn-text');
+            const mobileClear = document.getElementById('mobile-clear');
+            if (mobileSelected.includes('All Mobile') || mobileSelected.length === 0) {
+                mobileBtn.textContent = 'All Mobile';
+                mobileClear.classList.remove('show');
+            } else if (mobileSelected.length === 1) {
+                const text = mobileSelected[0] === 'Mobile' ? 'Mobile Only' : 'Non-Mobile Only';
+                mobileBtn.textContent = text;
+                mobileClear.classList.add('show');
+            } else {
+                mobileBtn.textContent = `${mobileSelected.length} selected`;
+                mobileClear.classList.add('show');
+            }
+        }
+
+        function applyFilters() {
+            // Animation effect
+            const btn = document.querySelector('.apply-btn');
+            const originalBg = btn.style.backgroundColor;
+            btn.style.backgroundColor = '#1d4ed8';
+            setTimeout(() => {
+                btn.style.backgroundColor = originalBg;
+            }, 150);
+            
+            // Get filter values
+            const selectedProtocols = getSelectedValues('protocols');
+            const selectedCountries = getSelectedValues('country');
+            const selectedMobile = getSelectedValues('mobile');
+            
+            // Filter proxies
+            filteredProxies = allProxies.filter(proxy => {
+                let show = true;
+                
+                // Filter by protocol
+                if (selectedProtocols.length > 0 && !selectedProtocols.includes('All protocols')) {
+                    const protocol = proxy.proxy.includes(':80') ? 'HTTP' : 
+                                   proxy.proxy.includes(':1080') ? 'SOCKS4' : 
+                                   proxy.proxy.includes(':443') ? 'HTTPS' : 'HTTP';
+                    show = show && selectedProtocols.includes(protocol);
+                }
+                
+                // Filter by country
+                if (selectedCountries.length > 0 && !selectedCountries.includes('All Countries')) {
+                    const countryMatch = selectedCountries.some(selected => {
+                        return proxy.country && proxy.country.toLowerCase() === selected.toLowerCase();
+                    });
+                    show = show && countryMatch;
+                }
+                
+                // Filter by mobile
+                if (selectedMobile.length > 0 && !selectedMobile.includes('All Mobile')) {
+                    if (selectedMobile.includes('Mobile')) {
+                        show = show && proxy.mobile === true;
+                    }
+                    if (selectedMobile.includes('Non-Mobile')) {
+                        show = show && proxy.mobile === false;
+                    }
+                }
+                
+                return show;
+            });
+            
+            // Reset to first page
+            currentPage = 1;
+            
+            // Update display
+            document.getElementById('total-count').textContent = filteredProxies.length;
+            renderProxyTable();
+            renderPagination();
+            
+            console.log('Filters applied:', {
+                protocols: selectedProtocols,
+                countries: selectedCountries,
+                mobile: selectedMobile,
+                totalFiltered: filteredProxies.length,
+                totalOriginal: allProxies.length
+            });
+        }
+        
+        function getSelectedValues(filterType) {
+            const checkboxes = document.querySelectorAll(`#${filterType}-dropdown input[type="checkbox"]:checked`);
+            return Array.from(checkboxes).map(cb => cb.nextElementSibling.textContent.trim());
+        }
+
+        // Handle checkbox logic
+        function handleCheckboxChange(dropdownId) {
+            const dropdown = document.getElementById(dropdownId + '-dropdown');
+            const allCheckbox = dropdown.querySelector('input[type="checkbox"][id*="all"]');
+            const otherCheckboxes = dropdown.querySelectorAll('input[type="checkbox"]:not([id*="all"])');
+            
+            // If "All" is clicked
+            if (event.target === allCheckbox) {
+                if (allCheckbox.checked) {
+                    otherCheckboxes.forEach(cb => cb.checked = false);
+                }
+            } else {
+                // If any specific option is clicked
+                if (event.target.checked) {
+                    allCheckbox.checked = false;
+                } else {
+                    // If no specific options are selected, select "All"
+                    const anyOtherChecked = Array.from(otherCheckboxes).some(cb => cb.checked);
+                    if (!anyOtherChecked) {
+                        allCheckbox.checked = true;
+                    }
+                }
+            }
+            
+            // Update button text after checkbox change
+            setTimeout(updateButtonText, 10);
+        }
+        
+        // Attach event listeners to checkboxes
+        function attachCheckboxListeners() {
+            const checkboxes = document.querySelectorAll('.dropdown input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.removeEventListener('change', handleCheckboxChangeWrapper);
+                checkbox.addEventListener('change', handleCheckboxChangeWrapper);
+            });
+        }
+        
+        function handleCheckboxChangeWrapper(event) {
+            const dropdownId = event.target.closest('.dropdown').id.replace('-dropdown', '');
+            handleCheckboxChange(dropdownId);
+        }
+        
+        // Initialize the application
+        async function initializeApp() {
+            // Load initial data
+            await loadProxies();
+            
+            // Attach initial event listeners
+            attachCheckboxListeners();
+            
+            // Set up real-time monitoring
+            refreshInterval = setInterval(loadProxies, 30000); // Check every 30 seconds
+            
+            // Also add click handlers to labels
+            const labels = document.querySelectorAll('.dropdown-item label');
+            labels.forEach(label => {
+                label.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                });
+            });
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.filter-group')) {
+                document.querySelectorAll('.dropdown').forEach(dd => {
+                    dd.classList.remove('show');
+                });
+            }
+        });
+
+        // Prevent dropdown from closing when clicking search input or clear button
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('search-input') || event.target.classList.contains('clear-btn')) {
+                event.stopPropagation();
+            }
+        });
+
+        // Handle page visibility change (pause/resume monitoring when tab is not active)
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                // Tab is not active, reduce refresh frequency
+                clearInterval(refreshInterval);
+                refreshInterval = setInterval(loadProxies, 60000); // Check every minute
+            } else {
+                // Tab is active, resume normal frequency
+                clearInterval(refreshInterval);
+                refreshInterval = setInterval(loadProxies, 30000); // Check every 30 seconds
+                loadProxies(); // Immediate refresh when tab becomes active
+            }
+        });
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+
+        // Start the application when page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+        // Manual refresh function (can be called by user)
+        function manualRefresh() {
+            loadProxies();
+        }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            // F5 or Ctrl+R for manual refresh
+            if (event.key === 'F5' || (event.ctrlKey && event.key === 'r')) {
+                event.preventDefault();
+                manualRefresh();
+            }
+            
+            // Arrow keys for pagination
+            if (event.key === 'ArrowLeft' && currentPage > 1) {
+                changePage(currentPage - 1);
+            } else if (event.key === 'ArrowRight') {
+                const totalPages = Math.ceil(filteredProxies.length / proxiesPerPage);
+                if (currentPage < totalPages) {
+                    changePage(currentPage + 1);
+                }
+            }
+        });
+
+        // Export function for testing/debugging
+        window.proxyManager = {
+            loadProxies,
+            manualRefresh,
+            applyFilters,
+            changePage,
+            getCurrentData: () => ({ allProxies, filteredProxies, currentPage })
+        };
+    </script>
+</body>
+</html>
