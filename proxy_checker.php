@@ -203,8 +203,8 @@ class ProxyChecker {
             
             // Rate limiting: delay 1.5 giây giữa các request (40 req/min)
             if ($processedCount < count($queueProxies)) {
-                $this->log("Rate limiting: sleeping 1.5 seconds...");
-                sleep(1.5);
+                $this->log("Rate limiting: sleeping 1.5 seconds (using usleep)...");
+                usleep(1500000);
             }
         }
         
