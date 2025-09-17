@@ -5,12 +5,20 @@ class ProxyChecker {
     private $checkedFile = 'checked_proxies.txt';
     private $resultFile = 'proxy_info.json';
     private $logFile = 'proxy_checker.log';
+    private $lockFile = 'proxy_checker.lock';
+    private $lockHandle = null;
+    private $lockOwned = false;
     
     public function __construct() {
         // Tạo các file cần thiết nếu chưa tồn tại
         $this->initializeFiles();
     }
-    
+
+    public function __destruct()
+    {
+        $this->releaseLock();
+    }
+
     private function initializeFiles() {
         if (!file_exists($this->queueFile)) {
             file_put_contents($this->queueFile, '');
@@ -27,15 +35,70 @@ class ProxyChecker {
     }
     
     public function run() {
-        $this->log("Starting proxy checker...");
-        
-        // Bước 1: Chuyển proxy mới từ proxy_8080.txt sang start_check.txt
-        $this->moveNewProxiesToQueue();
-        
-        // Bước 2: Xử lý queue - check từng proxy một
-        $this->processQueue();
-        
-        $this->log("Proxy checking completed.");
+        if (!$this->acquireLock()) {
+            return;
+        }
+
+        try {
+            $this->log("Starting proxy checker...");
+
+            // Bước 1: Chuyển proxy mới từ proxy_8080.txt sang start_check.txt
+            $this->moveNewProxiesToQueue();
+
+            // Bước 2: Xử lý queue - check từng proxy một
+            $this->processQueue();
+
+            $this->log("Proxy checking completed.");
+        } finally {
+            $this->releaseLock();
+        }
+    }
+
+    private function acquireLock(): bool
+    {
+        $lockPath = __DIR__ . DIRECTORY_SEPARATOR . $this->lockFile;
+        $handle = @fopen($lockPath, 'c');
+
+        if ($handle === false) {
+            $this->log("Unable to open lock file: $lockPath");
+            return false;
+        }
+
+        if (!flock($handle, LOCK_EX | LOCK_NB)) {
+            fclose($handle);
+            $this->log('Another proxy checker instance is already running. Skipping.');
+            return false;
+        }
+
+        ftruncate($handle, 0);
+        @fwrite($handle, (string) getmypid());
+        fflush($handle);
+
+        $this->lockHandle = $handle;
+        $this->lockOwned = true;
+
+        return true;
+    }
+
+    private function releaseLock(): void
+    {
+        if (!$this->lockOwned) {
+            return;
+        }
+
+        if ($this->lockHandle) {
+            flock($this->lockHandle, LOCK_UN);
+            fclose($this->lockHandle);
+            $this->lockHandle = null;
+        }
+
+        $lockPath = __DIR__ . DIRECTORY_SEPARATOR . $this->lockFile;
+
+        if (file_exists($lockPath)) {
+            @unlink($lockPath);
+        }
+
+        $this->lockOwned = false;
     }
     
     /**
